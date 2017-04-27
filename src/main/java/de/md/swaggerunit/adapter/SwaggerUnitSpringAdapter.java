@@ -38,32 +38,34 @@ public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor {
 	}
 
 	/**
-	 * Test if the response body of a response is formatted as json. This function doesn't
-	 * actually inspect the body, if just checks if the content-type header contains
-	 * something like "application/json".
+	 * Test if the response body of a response is formatted as json. This function doesn't actually inspect the body, if just
+	 * checks if the content-type header contains something like "application/json".
 	 *
 	 * @param response
 	 * @return true if the response body is formatted as json.
 	 */
-	private boolean isJsonResponse(ClientHttpResponse response){
-		return response
-			.getHeaders()
-			.getContentType()
-			.isCompatibleWith(MediaType.APPLICATION_JSON);
+	private boolean isJsonResponse(ClientHttpResponse response) {
+		return response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON);
 	}
-	
+
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
 			throws IOException {
+
+		if (ValidationScope.NONE.equals(validationScope)) {
+			LOGGER.warn("Swagger validation is disabled");
+		}
 		if (validationScope == ValidationScope.REQUEST || validationScope == ValidationScope.BOTH) {
 			unitCore.validateRequest(request.getMethod().name(), request.getURI(), request.getHeaders(), new String(body));
 		}
 		ClientHttpResponse response = execution.execute(request, body);
-		if (isJsonResponse(response) && (validationScope == ValidationScope.RESPONSE|| validationScope == ValidationScope.BOTH)) {
+		if (isJsonResponse(response)
+				&& (validationScope == ValidationScope.RESPONSE || validationScope == ValidationScope.BOTH)) {
 			ClonedHttpResponse clonedHttpResponse = ClonedHttpResponse.createFrom(response);
 			//TODO: only do this if the content type is json!
 			//TODO: dont use the default charset to create the body as string.
-			unitCore.validateResponse(request.getMethod().name(), response.getRawStatusCode(), request.getURI(), request.getHeaders(), new String(clonedHttpResponse.getRawBody()));
+			unitCore.validateResponse(request.getMethod().name(), response.getRawStatusCode(), request.getURI(),
+					request.getHeaders(), new String(clonedHttpResponse.getRawBody()));
 			return clonedHttpResponse;
 		}
 		return response;

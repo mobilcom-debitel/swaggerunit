@@ -17,14 +17,13 @@ public class SwaggerUnitRule implements MethodRule {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitRule.class);
 	private SwaggerUnitCore swaggerUnit;
 	private RestTemplate restTemplate;
-	private SwaggerUnitSpringAdapter swaggerUnitInterceptor;
+	private SwaggerUnitSpringAdapter adapter;
 
 	public SwaggerUnitRule(String swaggerUri, RestTemplate restTemplate) {
 		super();
 		this.swaggerUnit = new SwaggerUnitCore(swaggerUri);
-		this.restTemplate = restTemplate;
-		this.swaggerUnitInterceptor = new SwaggerUnitSpringAdapter(swaggerUnit);
-		restTemplate.setInterceptors(Arrays.asList(swaggerUnitInterceptor));
+		this.adapter = new SwaggerUnitSpringAdapter(swaggerUnit);
+		restTemplate.setInterceptors(Arrays.asList(adapter));
 	}
 
 	@Override
@@ -35,7 +34,7 @@ public class SwaggerUnitRule implements MethodRule {
 			public void evaluate() throws Throwable {
 				SwaggerValidation annotation = method.getAnnotation(SwaggerValidation.class);
 				if(annotation != null) {
-					swaggerUnitInterceptor.setValidationScope(annotation.value());
+					adapter.setValidationScope(annotation.value());
 
 					try {
 						base.evaluate();
@@ -43,7 +42,7 @@ public class SwaggerUnitRule implements MethodRule {
 						LOGGER.error("Beim ausführen eines Tests ist eine Exception aufgetreten: {}", e);
 						throw new RuntimeException(e);
 					}
-					swaggerUnitInterceptor.setValidationScope(ValidationScope.NONE);
+					adapter.setValidationScope(ValidationScope.NONE);
 				}
 			}
 		};
