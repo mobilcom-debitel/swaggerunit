@@ -1,0 +1,38 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>de.md</groupId>
+  <artifactId>swaggerunit</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <name>SwaggerUnit</name>
+  <description>Framework um eine SwaggerValidierung im JUnit-Test durchzuführen</description>
+  <packaging>jar</packaging>
+  <properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>1.8</java.version>
+  </properties>
+	<scm>
+		<developerConnection>scm:git:https://stashweb.mobilcom.de/scm/kuse/swaggerunit.git</developerConnection>
+		<connection>scm:git:https://stashweb.mobilcom.de/scm/kuse/swaggerunit.git</connection>
+		<url>https://stashweb.mobilcom.de/scm/kuse/swaggerunit.git</url>
+		<tag>HEAD</tag>
+	</scm>
+	<distributionManagement>
+		<repository>
+			<id>md-release</id>
+			<name>artifactory-releases</name>
+			<url>http://artifactory:8080/artifactory/md-release</url>
+		</repository>
+		<snapshotRepository>
+			<id>md-snapshot</id>
+			<name>artifactory-snapshots</name>
+			<url>http://artifactory:8080/artifactory/md-snapshot</url>
+		</snapshotRepository>
+	</distributionManagement>
+	<dependencies>
+		<dependency>
+			<groupId>com.atlassian.oai</groupId>
+			<artifactId>swagger-request-validator-core</artifactId>
+			<version>1.0.13</version>
+		</dependency>
+	</dependencies>
+</project>
