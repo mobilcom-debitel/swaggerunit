@@ -1,25 +1,22 @@
 package de.md.swaggerunit.adapter;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Arrays;
 import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.web.client.RestTemplate;
 
 import de.md.swaggerunit.core.SwaggerUnitCore;
 import de.md.swaggerunit.usage.ValidationScope;
 
-public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor {
+public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor, SwaggerUnitAdapter {
 
 	private SwaggerUnitCore unitCore;
 
@@ -27,8 +24,9 @@ public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitSpringAdapter.class);
 
-	public SwaggerUnitSpringAdapter(SwaggerUnitCore unitCore) {
+	public SwaggerUnitSpringAdapter(SwaggerUnitCore unitCore, RestTemplate restTemplate) {
 		super();
+		restTemplate.setInterceptors(Arrays.asList(this));
 		this.unitCore = unitCore;
 	}
 
@@ -69,6 +67,16 @@ public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor {
 			return clonedHttpResponse;
 		}
 		return response;
+	}
+
+	@Override
+	public void afterValidation() {
+		this.validationScope = ValidationScope.NONE;
+	}
+
+	@Override
+	public void validate(ValidationScope validationScope) {
+		this.validationScope = validationScope;
 	}
 
 }

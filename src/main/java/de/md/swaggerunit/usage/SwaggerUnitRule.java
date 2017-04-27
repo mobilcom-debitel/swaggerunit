@@ -1,29 +1,21 @@
 package de.md.swaggerunit.usage;
 
-import java.util.Arrays;
-
 import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.client.RestTemplate;
 
-import de.md.swaggerunit.adapter.SwaggerUnitSpringAdapter;
-import de.md.swaggerunit.core.SwaggerUnitCore;
+import de.md.swaggerunit.adapter.SwaggerUnitAdapter;
 
 public class SwaggerUnitRule implements MethodRule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitRule.class);
-	private SwaggerUnitCore swaggerUnit;
-	private RestTemplate restTemplate;
-	private SwaggerUnitSpringAdapter adapter;
+	private SwaggerUnitAdapter adapter;
 
-	public SwaggerUnitRule(String swaggerUri, RestTemplate restTemplate) {
+	public SwaggerUnitRule(SwaggerUnitAdapter adapter) {
 		super();
-		this.swaggerUnit = new SwaggerUnitCore(swaggerUri);
-		this.adapter = new SwaggerUnitSpringAdapter(swaggerUnit);
-		restTemplate.setInterceptors(Arrays.asList(adapter));
+		this.adapter = adapter;
 	}
 
 	@Override
@@ -33,16 +25,15 @@ public class SwaggerUnitRule implements MethodRule {
 			@Override
 			public void evaluate() throws Throwable {
 				SwaggerValidation annotation = method.getAnnotation(SwaggerValidation.class);
-				if(annotation != null) {
-					adapter.setValidationScope(annotation.value());
-
+				if (annotation != null) {
+					adapter.validate(annotation.value());
 					try {
 						base.evaluate();
 					} catch (Throwable e) {
 						LOGGER.error("Beim ausführen eines Tests ist eine Exception aufgetreten: {}", e);
 						throw new RuntimeException(e);
 					}
-					adapter.setValidationScope(ValidationScope.NONE);
+					adapter.afterValidation();
 				}
 			}
 		};
