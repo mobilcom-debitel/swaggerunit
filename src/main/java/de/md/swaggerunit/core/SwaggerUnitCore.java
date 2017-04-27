@@ -1,6 +1,8 @@
 package de.md.swaggerunit.core;
 
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,8 +35,24 @@ public class SwaggerUnitCore {
 
 	public SwaggerUnitCore(String swaggerUri) {
 		validator = SwaggerRequestResponseValidator.createFor(swaggerUri).build();
-		SwaggerDeserializationResult swaggerDeserializationResult = new SwaggerParser().readWithInfo(swaggerUri, null, true);
+		SwaggerDeserializationResult swaggerDeserializationResult = isUrl(swaggerUri) ?
+				new SwaggerParser().readWithInfo(swaggerUri, null, true) :
+				new SwaggerParser().readWithInfo(swaggerUri);
 		swagger = swaggerDeserializationResult.getSwagger();
+	}
+
+	/**
+	 * Simple function to test, if a string is a valid representation of an URL or not.
+	 * @param content
+	 * @return true is the string is a valid URL
+	 */
+	private boolean isUrl(String content){
+		try {
+			new URL(content);
+			return true;
+		} catch (MalformedURLException e) {
+			return false;
+		}
 	}
 
 	/**
