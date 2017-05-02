@@ -33,11 +33,21 @@ public class SwaggerUnitCore {
 	private SwaggerRequestResponseValidator validator;
 	private Swagger swagger;
 
-	public SwaggerUnitCore(String swaggerUri) {
-		validator = SwaggerRequestResponseValidator.createFor(swaggerUri).build();
-		SwaggerDeserializationResult swaggerDeserializationResult = isUrl(swaggerUri) ?
-				new SwaggerParser().readWithInfo(swaggerUri, null, true) :
-				new SwaggerParser().readWithInfo(swaggerUri);
+	/**
+	 * Create a new SwaggerUnitCore instance.
+	 *
+	 * @param swaggerUriOrFileContents url to the swagger-file of the swagger-definition itself.
+	 */
+	public SwaggerUnitCore(String swaggerUriOrFileContents) {
+		//allow the swagger to be overwritten by a global variable.
+		if(System.getenv().containsKey("swaggerSourceOverride")){
+			swaggerUriOrFileContents = System.getenv("swaggerSourceOverride");
+			LOGGER.info("using \"{}\" as swagger.",swaggerUriOrFileContents);
+		}
+		validator = SwaggerRequestResponseValidator.createFor(swaggerUriOrFileContents).build();
+		SwaggerDeserializationResult swaggerDeserializationResult = isUrl(swaggerUriOrFileContents) ?
+				new SwaggerParser().readWithInfo(swaggerUriOrFileContents, null, true) :
+				new SwaggerParser().readWithInfo(swaggerUriOrFileContents);
 		swagger = swaggerDeserializationResult.getSwagger();
 	}
 
