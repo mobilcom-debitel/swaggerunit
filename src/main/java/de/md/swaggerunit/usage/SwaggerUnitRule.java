@@ -27,12 +27,14 @@ public class SwaggerUnitRule implements MethodRule {
 				SwaggerValidation annotation = method.getAnnotation(SwaggerValidation.class);
 				if (annotation != null) {
 					adapter.validate(annotation.value());
-					try {
-						base.evaluate();
-					} catch (Throwable e) {
-						LOGGER.error("Beim ausführen eines Tests ist eine Exception aufgetreten: {}", e);
-						throw new RuntimeException(e);
-					}
+				}
+				try {
+					base.evaluate();
+				} catch (Throwable e) {
+					LOGGER.error("Beim ausführen eines Tests ist eine Exception aufgetreten: {}", e);
+					throw e;
+				}
+				if (annotation != null) {
 					adapter.afterValidation();
 				}
 			}
