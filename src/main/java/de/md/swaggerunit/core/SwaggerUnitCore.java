@@ -4,9 +4,11 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -16,8 +18,9 @@ import com.atlassian.oai.validator.SwaggerRequestResponseValidator;
 import com.atlassian.oai.validator.model.Request.Method;
 import com.atlassian.oai.validator.model.SimpleRequest;
 import com.atlassian.oai.validator.model.SimpleResponse;
-import com.atlassian.oai.validator.report.MutableValidationReport;
+import com.atlassian.oai.validator.report.MergedValidationReport;
 import com.atlassian.oai.validator.report.ValidationReport;
+import com.atlassian.oai.validator.report.ValidationReport.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -75,13 +78,14 @@ public class SwaggerUnitCore {
 	 */
 	public void validateRequest(String method, URI uri, Map<String, List<String>> header, String body)  {
 		String basePath = swagger.getBasePath();
+		if(basePath == null) {
+			basePath = "";
+		}
 		Method requestMethod = Method.valueOf(method);
 		String relUri = uri.getPath().substring(basePath.length(), uri.getPath().length());
 		SimpleRequest.Builder requestBuilder = new SimpleRequest.Builder(requestMethod, relUri).withBody(body);
 		if (header != null) {
-			header.forEach((k, v) -> {
-				requestBuilder.withHeader(k, v);
-			});
+			header.forEach(requestBuilder::withHeader);
 		}
 		String rawQuery = uri.getQuery();
 		Map<String, List<String>> parsedQueryParams = new HashMap<>();
@@ -104,29 +108,40 @@ public class SwaggerUnitCore {
 				}
 			}
 		}
-		parsedQueryParams.forEach( (k,v) -> {
-			requestBuilder.withQueryParam(k, v);
-		});
+		parsedQueryParams.forEach(requestBuilder::withQueryParam);
 		SimpleRequest simpleRequest = requestBuilder.build();
     	ValidationReport validationReport = validator.validateRequest(simpleRequest);
 
-		String pathWithoutBasePath = uri.getPath().substring(basePath.length());
-		Path path = swagger.getPath(pathWithoutBasePath);
+		/** check if the paths exists **/
+    	String pathToSearchFor = uri.getPath().substring(basePath.length());
+    	Path path = null;
+    	Map<String, Path> paths = swagger.getPaths();
+    	for(String keyToCheck : paths.keySet()) {
+    		//make regex of path  to get something like /v1/contracts/{contractId}
+    		String pathToCheck = keyToCheck.replaceAll("\\{.*\\}", ".*");
+    		Pattern pathRegexToCheck = Pattern.compile(pathToCheck);
+    		boolean equals = pathRegexToCheck.matcher(pathToSearchFor).matches();
+    		if(equals) {
+    			path = swagger.getPath(keyToCheck);
+    			break;
+    		}
+    	}
 		if (path == null) {
-			throw new SwaggerValidationException(String.format("unable to find path for \"%s\".", pathWithoutBasePath));
+			throw new SwaggerValidationException(String.format("unable to find path for \"%s\".", pathToSearchFor));
 		}
 
 
-		MutableValidationReport fuckThis = new MutableValidationReport();
-		fuckThis.addAll(validationReport);
-
-		getOperationForMethodFromPath(path, requestMethod)
-			.getParameters()
-			.stream()
-			.filter(param -> "header".equalsIgnoreCase(param.getIn()) && param.getRequired() && (header == null || !header.containsKey(param.getName())))
-			.map(param -> new HeaderMessage(param.getName(), String.format("Mandatory header \"%s\" is not set.", param.getName())))
-			.forEach(fuckThis::add);
-		processValidationReport(fuckThis);
+		Collection<Message> validationHeaderMessages = getOperationForMethodFromPath(path, requestMethod).getParameters()
+				.stream()
+				.filter(param -> "header".equalsIgnoreCase(param.getIn()) && param.getRequired()
+						&& (header == null || !header.containsKey(param.getName())))
+				.map(param -> new HeaderMessage(param.getName(),
+						String.format("Mandatory header \"%s\" is not set.", param.getName())))
+				.collect(Collectors.toList());
+		ValidationReport validationHeaderReport = ValidationReport.from(validationHeaderMessages);
+		
+		ValidationReport mergedValidationReport =  validationReport.merge(validationHeaderReport);
+		processValidationReport(mergedValidationReport);
 	}
 
 	private void processValidationReport(ValidationReport validationReport) {
