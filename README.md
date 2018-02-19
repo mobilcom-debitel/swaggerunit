@@ -3,9 +3,10 @@ Util für das Validierung von Service Anfragen und Antworten gegen eine Swagger-
 
 ## Verantwortliches Team:
 ```
-it.ccs.clm.services@md.de unter der Leitung von Katja Daniel Katja.Daniel@md.de
-Stash Project Admins: Mitglieder von it.ccs.clm.services@md.de
-Stash Repository Admins: Mitglieder von it.ccs.clm.services@md.de
+Teamleitung: timm.schier@md.de
+Team it.abba.back.services@md.de
+Stash Project Admins: Mitglieder von it.abba.back.services
+Stash Repository Admins: Mitglieder von it.abba.back.services
 ```
 
 ## Genutztes Branching Model:
