@@ -188,6 +188,9 @@ public class SwaggerUnitCore {
 			});
 		}
 		String basePath = swagger.getBasePath();
+		if(basePath == null) {
+			basePath = "";
+		}
 		String relUri = uri.getPath().substring(basePath.length());
 		SimpleResponse response = responseBuilder.build();
 		ValidationReport validationReport = validator.validateResponse(relUri, Method.valueOf(method), response);
