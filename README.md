@@ -1,4 +1,4 @@
-# Subvention-Service
+# SwaggerUnit
 Util für das Validierung von Service Anfragen und Antworten gegen eine Swagger-Definition.
 
 ## Verantwortliches Team:
