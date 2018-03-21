@@ -5,9 +5,11 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import de.md.swaggerunit.adapter.SwaggerUnitAdapter;
 
+@Component
 public class SwaggerUnitRule implements MethodRule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitRule.class);

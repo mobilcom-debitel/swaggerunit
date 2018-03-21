@@ -4,21 +4,27 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import com.atlassian.oai.validator.SwaggerRequestResponseValidator;
+import com.atlassian.oai.validator.SwaggerRequestResponseValidator.Builder;
 import com.atlassian.oai.validator.model.Request.Method;
 import com.atlassian.oai.validator.model.SimpleRequest;
 import com.atlassian.oai.validator.model.SimpleResponse;
-import com.atlassian.oai.validator.report.MergedValidationReport;
 import com.atlassian.oai.validator.report.ValidationReport;
 import com.atlassian.oai.validator.report.ValidationReport.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -27,31 +33,52 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.models.Operation;
 import io.swagger.models.Path;
 import io.swagger.models.Swagger;
+import io.swagger.models.auth.AuthorizationValue;
 import io.swagger.parser.SwaggerParser;
 import io.swagger.parser.util.SwaggerDeserializationResult;
 
+@Component
 public class SwaggerUnitCore {
 
-	protected static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitCore.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitCore.class);
+
+	@Autowired
+	private SwaggerAuthentication authentication;
+	
+	@Autowired
+	private SwaggerUnitTestConfiguration swaggerUnitTestConfiguration;
+	
 	private SwaggerRequestResponseValidator validator;
+
 	private Swagger swagger;
 
-	/**
-	 * Create a new SwaggerUnitCore instance.
-	 *
-	 * @param swaggerUriOrFileContents url to the swagger-file of the swagger-definition itself.
-	 */
-	public SwaggerUnitCore(String swaggerUriOrFileContents) {
-		//allow the swagger to be overwritten by a global variable.
-		if(System.getenv().containsKey("swaggerSourceOverride")){
-			swaggerUriOrFileContents = System.getenv("swaggerSourceOverride");
-			LOGGER.info("using \"{}\" as swagger.",swaggerUriOrFileContents);
-		}
-		validator = SwaggerRequestResponseValidator.createFor(swaggerUriOrFileContents).build();
+	public SwaggerUnitCore() {}
+
+	public SwaggerUnitCore(String swaggerDefinition) {
+		init(swaggerDefinition, Optional.empty());
+	}
+
+	@PostConstruct
+	private void init() {
+		init(swaggerUnitTestConfiguration.getSwaggerSourceOverride(), authentication.getAuth());
+	}
+	
+	private void init(String swaggerUriOrFileContents, Optional<AuthorizationValue> auth) {
+		initValidator(swaggerUriOrFileContents, auth);
+		initSwagger(swaggerUriOrFileContents, auth);
+	}
+
+	private void initSwagger(String swaggerUriOrFileContents, Optional<AuthorizationValue> auth) {
 		SwaggerDeserializationResult swaggerDeserializationResult = isUrl(swaggerUriOrFileContents) ?
-				new SwaggerParser().readWithInfo(swaggerUriOrFileContents, null, true) :
+				new SwaggerParser().readWithInfo(swaggerUriOrFileContents, auth.map(Arrays::asList).orElse(null), true) :
 				new SwaggerParser().readWithInfo(swaggerUriOrFileContents);
 		swagger = swaggerDeserializationResult.getSwagger();
+	}
+
+	private void initValidator(String swaggerUriOrFileContents, Optional<AuthorizationValue> auth) {
+		Builder builder = SwaggerRequestResponseValidator.createFor(swaggerUriOrFileContents);
+		auth.ifPresent(a -> builder.withAuthHeaderData(a.getKeyName(), a.getValue()));
+		validator = builder.build();
 	}
 
 	/**
@@ -146,15 +173,16 @@ public class SwaggerUnitCore {
 
 	private void processValidationReport(ValidationReport validationReport) {
 		try {
-			LOGGER.info("Validierungsergebniss SwaggerUnit: {}", new ObjectMapper().writeValueAsString(validationReport));
+			if (LOGGER.isInfoEnabled()) {
+				LOGGER.info("Validierungsergebnis SwaggerUnit: {}", new ObjectMapper().writeValueAsString(validationReport));
+			}
 		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Das Validierungsergebnis von SwaggerUnit konnte nicht ausgegeben werden.", e);
 		}
 		if(validationReport != null && validationReport.hasErrors()){
 			String message = validationReport.getMessages().stream()
 					//TODO: filter by parameter?
-					.map(m -> m.getMessage())
+					.map(Message::getMessage)
 					.collect(Collectors.joining(" "));
 			if(message != null && !message.isEmpty()) {
 				throw new SwaggerValidationException(message);

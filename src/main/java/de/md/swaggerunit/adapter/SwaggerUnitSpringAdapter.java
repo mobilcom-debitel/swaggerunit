@@ -11,11 +11,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import de.md.swaggerunit.core.SwaggerUnitCore;
 import de.md.swaggerunit.usage.ValidationScope;
 
+@Component
 public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor, SwaggerUnitAdapter {
 
 	private SwaggerUnitCore unitCore;
