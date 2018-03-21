@@ -5,11 +5,14 @@ package de.md.swaggerunit.core;
  */
 public class SwaggerValidationException extends RuntimeException {
 
-    public SwaggerValidationException(String message) {
-        super(message);
-    }
+	private static final long serialVersionUID = 7185046285868351986L;
 
-    public SwaggerValidationException(String message, Throwable cause) {
-        super(message, cause);
-    }
+	public SwaggerValidationException(String message) {
+		super(message);
+	}
+
+	public SwaggerValidationException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
 }
