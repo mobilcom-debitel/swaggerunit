@@ -8,8 +8,9 @@ package de.md.swaggerunit.core;
 
 import java.util.Optional;
 
+import javax.inject.Inject;
+
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -28,11 +29,11 @@ public class SwaggerAuthentication {
 	
 	private static Optional<String> authToken = Optional.empty();
 	
-	@Autowired
+	@Inject
 	private RestTemplate restTemplate;
 	
-	@Autowired
-	private SwaggerUnitTestConfiguration swaggerUnitTestConfiguration;
+	@Inject
+	private SwaggerUnitConfiguration swaggerUnitConfiguration;
 	
 	Optional<AuthorizationValue> getAuth() {
 		return loginAndGetToken().map(this::tokenToAuthorizationValue);
@@ -59,13 +60,13 @@ public class SwaggerAuthentication {
 
 	private SwaggerAuthenticationResponse authenticate() {
 		MultiValueMap<String, String> loginForm = createLoginForm();
-		return restTemplate.postForObject(swaggerUnitTestConfiguration.getSwaggerLoginUrl(), loginForm, SwaggerAuthenticationResponse.class);
+		return restTemplate.postForObject(swaggerUnitConfiguration.getSwaggerLoginUrl(), loginForm, SwaggerAuthenticationResponse.class);
 	}
 
 	private MultiValueMap<String, String> createLoginForm() {
 		MultiValueMap<String, String> loginForm = new LinkedMultiValueMap<>();
-		loginForm.add(LOGIN_FORM_FIELD_USERNAME, swaggerUnitTestConfiguration.getSwaggerLoginUsername());
-		loginForm.add(LOGIN_FORM_FIELD_PASSWORD, swaggerUnitTestConfiguration.getSwaggerLoginPassword());
+		loginForm.add(LOGIN_FORM_FIELD_USERNAME, swaggerUnitConfiguration.getSwaggerLoginUsername());
+		loginForm.add(LOGIN_FORM_FIELD_PASSWORD, swaggerUnitConfiguration.getSwaggerLoginPassword());
 		return loginForm;
 	}
 

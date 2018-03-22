@@ -14,10 +14,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.atlassian.oai.validator.SwaggerRequestResponseValidator;
@@ -42,11 +42,11 @@ public class SwaggerUnitCore {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitCore.class);
 
-	@Autowired
+	@Inject
 	private SwaggerAuthentication authentication;
 	
-	@Autowired
-	private SwaggerUnitTestConfiguration swaggerUnitTestConfiguration;
+	@Inject
+	private SwaggerUnitConfiguration swaggerUnitConfiguration;
 	
 	private SwaggerRequestResponseValidator validator;
 
@@ -60,7 +60,7 @@ public class SwaggerUnitCore {
 
 	@PostConstruct
 	private void init() {
-		init(swaggerUnitTestConfiguration.getSwaggerSourceOverride(), authentication.getAuth());
+		init(swaggerUnitConfiguration.getSwaggerSourceOverride(), authentication.getAuth());
 	}
 	
 	private void init(String swaggerUriOrFileContents, Optional<AuthorizationValue> auth) {

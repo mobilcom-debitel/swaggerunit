@@ -52,6 +52,11 @@
 			<artifactId>spring-boot-test</artifactId>
 			<version>1.5.1.RELEASE</version>
 		</dependency>
+		<dependency>
+			<groupId>javax.enterprise</groupId>
+			<artifactId>cdi-api</artifactId>
+			<version>1.0</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>

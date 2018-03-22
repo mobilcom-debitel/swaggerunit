@@ -16,7 +16,7 @@ import org.springframework.web.client.RestTemplate;
 
 @TestConfiguration
 @ComponentScan("de.md.swaggerunit")
-public class SwaggerUnitTestConfiguration {
+public class SwaggerUnitConfiguration {
 
 	@Value("${swaggerSourceOverride}")
 	private String swaggerSourceOverride;
