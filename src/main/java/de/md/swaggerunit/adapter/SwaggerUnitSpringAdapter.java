@@ -26,9 +26,9 @@ public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor, S
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitSpringAdapter.class);
 
-	public SwaggerUnitSpringAdapter(SwaggerUnitCore unitCore, RestTemplate restTemplate) {
+	public SwaggerUnitSpringAdapter(SwaggerUnitCore unitCore, RestTemplate swaggerUnitHttpClient) {
 		super();
-		restTemplate.setInterceptors(Arrays.asList(this));
+		swaggerUnitHttpClient.setInterceptors(Arrays.asList(this));
 		this.unitCore = unitCore;
 	}
 

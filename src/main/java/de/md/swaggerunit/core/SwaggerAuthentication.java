@@ -30,7 +30,7 @@ public class SwaggerAuthentication {
 	private static Optional<String> authToken = Optional.empty();
 	
 	@Inject
-	private RestTemplate restTemplate;
+	private RestTemplate swaggerUnitHttpClient;
 	
 	@Inject
 	private SwaggerUnitConfiguration swaggerUnitConfiguration;
@@ -60,7 +60,7 @@ public class SwaggerAuthentication {
 
 	private SwaggerAuthenticationResponse authenticate() {
 		MultiValueMap<String, String> loginForm = createLoginForm();
-		return restTemplate.postForObject(swaggerUnitConfiguration.getSwaggerLoginUrl(), loginForm, SwaggerAuthenticationResponse.class);
+		return swaggerUnitHttpClient.postForObject(swaggerUnitConfiguration.getSwaggerLoginUrl(), loginForm, SwaggerAuthenticationResponse.class);
 	}
 
 	private MultiValueMap<String, String> createLoginForm() {

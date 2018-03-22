@@ -47,15 +47,15 @@ public class SwaggerUnitConfiguration {
 	}
 
 	@Bean
-	public RestTemplate restTemplate() {
-		RestTemplate restTemplate = new RestTemplate();
-		restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
+	public RestTemplate swaggerUnitHttpClient() {
+		RestTemplate swaggerUnitHttpClient = new RestTemplate();
+		swaggerUnitHttpClient.setErrorHandler(new DefaultResponseErrorHandler() {
 			@Override
 			protected boolean hasError(HttpStatus statusCode) {
 				return false;
 			}
 		});
-		return restTemplate;
+		return swaggerUnitHttpClient;
 	}
 
 }
