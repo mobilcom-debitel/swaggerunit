@@ -27,7 +27,7 @@ public class SwaggerAuthentication {
 
 	private static final String AUTHORIZATION_VALUE_TYPE_HEADER = "header";
 	
-	private static Optional<String> authToken = Optional.empty();
+	private Optional<String> authToken = Optional.empty();
 	
 	@Inject
 	private RestTemplate swaggerUnitHttpClient;
