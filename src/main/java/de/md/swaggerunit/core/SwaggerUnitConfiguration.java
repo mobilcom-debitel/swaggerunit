@@ -21,13 +21,13 @@ public class SwaggerUnitConfiguration {
 	@Value("${swaggerSourceOverride}")
 	private String swaggerSourceOverride;
 
-	@Value("${swaggerLoginUrl:https://developers.md.de/api/login}")
+	@Value("${swaggerLoginUrl}")
 	private String swaggerLoginUrl;
 	
-	@Value("${swaggerLoginUsername:it.ccs.clm.services@md.de}")
+	@Value("${swaggerLoginUsername}")
 	private String swaggerLoginUsername;
 	
-	@Value("${swaggerLoginPassword:xavinulajo12}")
+	@Value("${swaggerLoginPassword}")
 	private String swaggerLoginPassword;	//NOSONAR
 	
 	public String getSwaggerSourceOverride() {
