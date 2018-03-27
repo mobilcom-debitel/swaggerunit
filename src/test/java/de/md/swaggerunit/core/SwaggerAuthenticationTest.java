@@ -97,7 +97,7 @@ public class SwaggerAuthenticationTest {
 		auth = swaggerAuthentication.getAuth();
 		assertThat(auth.isPresent(), is(equalTo(false)));
 	}
-
+	
 	@Test(expected = RestClientException.class)
 	public void testGetAuthRethrowsRestClientException(@Tested SwaggerAuthentication swaggerAuthentication,
 			@Injectable RestTemplate restTemplate) {

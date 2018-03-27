@@ -7,14 +7,14 @@
 package de.md.swaggerunit.core;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
-@TestConfiguration
+@Configuration
 @ComponentScan("de.md.swaggerunit")
 public class SwaggerUnitConfiguration {
 
