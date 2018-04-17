@@ -10,10 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -42,23 +40,51 @@ public class SwaggerUnitCore {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitCore.class);
 
-	@Inject
 	private SwaggerAuthentication authentication;
 	
-	@Inject
 	private SwaggerUnitConfiguration swaggerUnitConfiguration;
+	
+	private SwaggerPathResolver swaggerPathResolver;
 	
 	private SwaggerRequestResponseValidator validator;
 
 	private Swagger swagger;
 
-	public SwaggerUnitCore() {}
-
+	/**
+	 * Ruft {@link #SwaggerUnitCore(String, SwaggerPathResolver)} und initialisiert eine neue Instanz von
+	 * {@link #swaggerPathResolver}.
+	 * 
+	 * @param swaggerDefinition eine Plaintext-Swagger-Definition.
+	 * @deprecated lieber mit {@link #SwaggerUnitCore(SwaggerUnitConfiguration, SwaggerAuthentication, SwaggerPathResolver)}
+	 *             arbeiten und swaggerSourceOverride definieren
+	 */
+	@Deprecated
 	public SwaggerUnitCore(String swaggerDefinition) {
+		this(swaggerDefinition, new SwaggerPathResolver());
+	}
+
+	/**
+	 * Initialisiert SwaggerUnitCore und verwendet swaggerDefinition als das für die Validierung maßgebliche Swagger.
+	 * 
+	 * @param swaggerDefinition eine Plaintext-Swagger-Definition.
+	 * @deprecated lieber mit {@link #SwaggerUnitCore(SwaggerUnitConfiguration, SwaggerAuthentication, SwaggerPathResolver)}
+	 *             arbeiten und swaggerSourceOverride definieren
+	 */
+	@Deprecated
+	public SwaggerUnitCore(String swaggerDefinition, SwaggerPathResolver swaggerPathResolver) {
+		this.swaggerPathResolver = swaggerPathResolver;
 		init(swaggerDefinition, Optional.empty());
 	}
 
-	@PostConstruct
+	@Inject
+	public SwaggerUnitCore(SwaggerUnitConfiguration swaggerUnitConfiguration, SwaggerAuthentication authentication,
+			SwaggerPathResolver swaggerPathResolver) {
+		this.swaggerUnitConfiguration = swaggerUnitConfiguration;
+		this.authentication = authentication;
+		this.swaggerPathResolver = swaggerPathResolver;
+		init();
+	}
+
 	private void init() {
 		init(swaggerUnitConfiguration.getSwaggerSourceOverride(), authentication.getAuth());
 	}
@@ -73,6 +99,13 @@ public class SwaggerUnitCore {
 				new SwaggerParser().readWithInfo(swaggerUriOrFileContents, auth.map(Arrays::asList).orElse(null), true) :
 				new SwaggerParser().readWithInfo(swaggerUriOrFileContents);
 		swagger = swaggerDeserializationResult.getSwagger();
+		initSwaggerBasePath();
+	}
+
+	private void initSwaggerBasePath() {
+		if(swagger.getBasePath() == null) {
+			swagger.setBasePath("");
+		}
 	}
 
 	private void initValidator(String swaggerUriOrFileContents, Optional<AuthorizationValue> auth) {
@@ -104,12 +137,8 @@ public class SwaggerUnitCore {
 	 * @throws JsonProcessingException 
 	 */
 	public void validateRequest(String method, URI uri, Map<String, List<String>> header, String body)  {
-		String basePath = swagger.getBasePath();
-		if(basePath == null) {
-			basePath = "";
-		}
 		Method requestMethod = Method.valueOf(method);
-		String relUri = uri.getPath().substring(basePath.length(), uri.getPath().length());
+		String relUri = uri.getPath().substring(swagger.getBasePath().length(), uri.getPath().length());
 		SimpleRequest.Builder requestBuilder = new SimpleRequest.Builder(requestMethod, relUri).withBody(body);
 		if (header != null) {
 			header.forEach(requestBuilder::withHeader);
@@ -139,24 +168,7 @@ public class SwaggerUnitCore {
 		SimpleRequest simpleRequest = requestBuilder.build();
     	ValidationReport validationReport = validator.validateRequest(simpleRequest);
 
-		/** check if the paths exists **/
-    	String pathToSearchFor = uri.getPath().substring(basePath.length());
-    	Path path = null;
-    	Map<String, Path> paths = swagger.getPaths();
-    	for(String keyToCheck : paths.keySet()) {
-    		//make regex of path  to get something like /v1/contracts/{contractId}
-    		String pathToCheck = keyToCheck.replaceAll("\\{.*\\}", ".*");
-    		Pattern pathRegexToCheck = Pattern.compile(pathToCheck);
-    		boolean equals = pathRegexToCheck.matcher(pathToSearchFor).matches();
-    		if(equals) {
-    			path = swagger.getPath(keyToCheck);
-    			break;
-    		}
-    	}
-		if (path == null) {
-			throw new SwaggerValidationException(String.format("unable to find path for \"%s\".", pathToSearchFor));
-		}
-
+		Path path = swaggerPathResolver.resolve(swagger, uri);
 
 		Collection<Message> validationHeaderMessages = getOperationForMethodFromPath(path, requestMethod).getParameters()
 				.stream()
@@ -215,11 +227,7 @@ public class SwaggerUnitCore {
 				responseBuilder.withHeader(k, v.toArray(new String[v.size()]));
 			});
 		}
-		String basePath = swagger.getBasePath();
-		if(basePath == null) {
-			basePath = "";
-		}
-		String relUri = uri.getPath().substring(basePath.length());
+		String relUri = uri.getPath().substring(swagger.getBasePath().length());
 		SimpleResponse response = responseBuilder.build();
 		ValidationReport validationReport = validator.validateResponse(relUri, Method.valueOf(method), response);
 		processValidationReport(validationReport);
