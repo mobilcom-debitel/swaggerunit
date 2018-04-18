@@ -22,22 +22,32 @@ public class SwaggerPathResolver {
 	public Path resolve(Swagger swagger, URI uri) {
 		/** check if the paths exists **/
 		String pathToSearchFor = uri.getPath().substring(swagger.getBasePath().length());
-		Path path = null;
-		Map<String, Path> paths = swagger.getPaths();
-		for (String keyToCheck : paths.keySet()) {
-			//make regex of path  to get something like /v1/contracts/{contractId}
-			String pathToCheck = keyToCheck.replaceAll("\\{.*\\}", ".*");
-			Pattern pathRegexToCheck = Pattern.compile(pathToCheck);
-			boolean equals = pathRegexToCheck.matcher(pathToSearchFor).matches();
-			if (equals) {
-				path = swagger.getPath(keyToCheck);
-				break;
-			}
+		Path path = findExactlyMatchingPath(swagger, pathToSearchFor);
+		if (path == null) {
+			path = findMatchingParameterPath(swagger, pathToSearchFor);
 		}
 		if (path == null) {
 			throw new SwaggerValidationException(String.format("unable to find path for \"%s\".", pathToSearchFor));
 		}
 		return path;
+	}
+
+	private Path findExactlyMatchingPath(Swagger swagger, String pathToSearchFor) {
+		Map<String, Path> paths = swagger.getPaths();
+		return paths.get(pathToSearchFor);
+	}
+
+	private Path findMatchingParameterPath(Swagger swagger, String pathToSearchFor) {
+		for (String keyToCheck : swagger.getPaths().keySet()) {
+			//make regex of path to get something like /v1/contracts/{contractId}
+			String pathToCheck = keyToCheck.replaceAll("\\{.*\\}", ".*");
+			Pattern pathRegexToCheck = Pattern.compile(pathToCheck);
+			boolean equals = pathRegexToCheck.matcher(pathToSearchFor).matches();
+			if (equals) {
+				return swagger.getPath(keyToCheck);
+			}
+		}
+		return null;
 	}
 
 }
