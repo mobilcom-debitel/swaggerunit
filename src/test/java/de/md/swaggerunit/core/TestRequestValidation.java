@@ -18,7 +18,11 @@ import org.junit.runner.RunWith;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
+import io.swagger.models.Operation;
+import io.swagger.models.Path;
 import io.swagger.models.Swagger;
+import io.swagger.models.parameters.BodyParameter;
+import io.swagger.models.parameters.Parameter;
 import mockit.Expectations;
 import mockit.Injectable;
 import mockit.Tested;
@@ -89,6 +93,29 @@ public class TestRequestValidation {
 				put("Channel", Collections.singletonList("App"));
 			}
 		};
+		swaggerUnitCore.validateRequest("GET", toTest, headers, null);
+	}
+
+	@Test
+	public void testErrorMessageGetsAdditionalInformationOnMissingHeaders() throws JsonProcessingException {
+		new Expectations() {
+			{
+				Parameter agentHeaderParameter = new BodyParameter();
+				agentHeaderParameter.setName("Agent");
+				agentHeaderParameter.setRequired(true);
+				agentHeaderParameter.setIn("header");
+				Operation operationWithAgentHeader = new Operation();
+				operationWithAgentHeader.addParameter(agentHeaderParameter);
+				Path getPathWithAgentHeader = new Path();
+				getPathWithAgentHeader.setGet(operationWithAgentHeader);
+				swaggerPathResolver.resolve((Swagger) any, (URI) any);
+				result = getPathWithAgentHeader;
+			}
+		};
+		thrown.expect(SwaggerValidationException.class);
+		thrown.expectMessage(containsString("Mandatory header \"Agent\" is not set."));
+		URI toTest = URI.create("/v1/contracts/tariffSwap?contractId=mc.123324");
+		Map<String, List<String>> headers = new HashMap<>();
 		swaggerUnitCore.validateRequest("GET", toTest, headers, null);
 	}
 
