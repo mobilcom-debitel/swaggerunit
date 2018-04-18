@@ -58,4 +58,9 @@ public class SwaggerUnitConfiguration {
 		return swaggerUnitHttpClient;
 	}
 
+	@Bean
+	public SwaggerPathResolver swaggerPathResolver() {
+		return new SwaggerPathResolver();
+	}
+
 }
