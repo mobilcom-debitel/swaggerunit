@@ -2,10 +2,12 @@ package de.md.swaggerunit.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import com.atlassian.oai.validator.report.ValidationReport;
 import com.atlassian.oai.validator.report.ValidationReport.Level;
 import com.atlassian.oai.validator.report.ValidationReport.Message;
+import com.atlassian.oai.validator.report.ValidationReport.MessageContext;
 
 /**
  * Created by fpriede on 26.04.2017.
@@ -58,4 +60,15 @@ public class HeaderMessage implements ValidationReport.Message {
 		this.additionalInfo.add(info);
 		return this;
 	}
+
+	@Override
+	public Optional<MessageContext> getContext() {
+		return Optional.empty();
+	}
+
+	@Override
+	public Message withAdditionalContext(MessageContext context) {
+		return this;
+	}
+
 }
