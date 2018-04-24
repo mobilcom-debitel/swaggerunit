@@ -45,7 +45,8 @@ public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor, S
 	 * @return true if the response body is formatted as json.
 	 */
 	private boolean isJsonResponse(ClientHttpResponse response) {
-		return response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON);
+		return response.getHeaders() != null && response.getHeaders().getContentType() != null
+				&& response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON);
 	}
 
 	@Override
