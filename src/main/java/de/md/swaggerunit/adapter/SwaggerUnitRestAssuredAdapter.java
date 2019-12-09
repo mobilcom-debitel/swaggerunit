@@ -3,14 +3,14 @@ package de.md.swaggerunit.adapter;
 import de.md.swaggerunit.core.SwaggerUnitCore;
 import de.md.swaggerunit.usage.ValidationScope;
 import io.restassured.config.HttpClientConfig;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.http.*;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.AbstractHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.protocol.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +25,7 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 	private String requestMethod;
 	private URI requestUri;
 	private AbstractHttpClient httpClient;
+	private HttpRequest request;
 
 	private ValidationScope validationScope = ValidationScope.BOTH;
 
@@ -45,6 +46,7 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 	public HttpClient createHttpClient() {
 		//Creating an HttpRequestInterceptor
 		HttpRequestInterceptor requestInterceptor = (request, context) -> {
+			this.request = request;
 			requestMethod = request.getRequestLine().getMethod();
 			requestUri = URI.create(request.getRequestLine().getUri());
 
@@ -52,7 +54,7 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 				LOGGER.warn("Swagger validation is disabled");
 			}
 			byte[] body = new byte[0];
-			if (request instanceof HttpEntityEnclosingRequest) {
+			if (request instanceof HttpEntityEnclosingRequest) { // TODO check this body consumed?
 				HttpEntity reqEntity = ((HttpEntityEnclosingRequest) request).getEntity();
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				reqEntity.writeTo(baos);
@@ -71,7 +73,8 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 		HttpResponseInterceptor responseInterceptor = (response, context) -> {
 			if (isJsonResponse(response) && (validationScope == ValidationScope.RESPONSE
 					|| validationScope == ValidationScope.BOTH)) {
-				HttpEntity resEntity = response.getEntity();
+				HttpHost target = (HttpHost) context.getAttribute(ExecutionContext.HTTP_TARGET_HOST);
+				HttpEntity resEntity = new DefaultHttpClient().execute(target, request).getEntity();
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				resEntity.writeTo(baos);
 				byte[] body = baos.toByteArray();
