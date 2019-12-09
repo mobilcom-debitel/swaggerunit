@@ -6,70 +6,13 @@
 // #***************************************************************************
 package de.md.swaggerunit.core;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.client.DefaultResponseErrorHandler;
-import org.springframework.web.client.RestTemplate;
+public interface SwaggerUnitConfiguration {
 
-@Configuration
-@ComponentScan("de.md.swaggerunit")
-public class SwaggerUnitConfiguration {
+	public String getSwaggerSourceOverride();
 
-	@Value("${swaggerSourceOverride}")
-	private String swaggerSourceOverride;
+	public String getSwaggerLoginUrl();
 
-	@Value("${swaggerLoginUrl}")
-	private String swaggerLoginUrl;
+	public String getSwaggerLoginUsername();
 
-	@Value("${swaggerLoginUsername}")
-	private String swaggerLoginUsername;
-
-	@Value("${swaggerLoginPassword}")
-	private String swaggerLoginPassword;    //NOSONAR
-
-	public String getSwaggerSourceOverride() {
-		return swaggerSourceOverride;
-	}
-
-	public String getSwaggerLoginUrl() {
-		return swaggerLoginUrl;
-	}
-
-	public String getSwaggerLoginUsername() {
-		return swaggerLoginUsername;
-	}
-
-	public String getSwaggerLoginPassword() {
-		return swaggerLoginPassword;
-	}
-
-	@Bean
-	public RestTemplate swaggerUnitHttpClient(@Autowired ObjectMapper objectMapper) {
-		RestTemplate swaggerUnitHttpClient = new RestTemplate();
-		swaggerUnitHttpClient.setErrorHandler(new DefaultResponseErrorHandler() {
-			@Override
-			protected boolean hasError(HttpStatus statusCode) {
-				return false;
-			}
-		});
-		// Suche nach dem MessageConverter für JSON (Jackson) und setze dort den vorkonfigurierten ObjectMapper
-		swaggerUnitHttpClient.getMessageConverters().forEach(httpMessageConverter -> {
-			if (httpMessageConverter instanceof MappingJackson2HttpMessageConverter) {
-				((MappingJackson2HttpMessageConverter) httpMessageConverter).setObjectMapper(objectMapper);
-			}
-		});
-		return swaggerUnitHttpClient;
-	}
-
-	@Bean
-	public SwaggerPathResolver swaggerPathResolver() {
-		return new SwaggerPathResolver();
-	}
-
+	public String getSwaggerLoginPassword();
 }

@@ -26,15 +26,19 @@ public class SwaggerAuthentication {
 	private static final String HEADER_NAME_AUTHORIZATION = "Authorization";
 
 	private static final String AUTHORIZATION_VALUE_TYPE_HEADER = "header";
-	
+
 	private Optional<String> authToken = Optional.empty();
-	
+
+	private final RestTemplate swaggerUnitHttpClient;
+
+	private final SwaggerUnitConfiguration swaggerUnitConfiguration;
+
 	@Inject
-	private RestTemplate swaggerUnitHttpClient;
-	
-	@Inject
-	private SwaggerUnitConfiguration swaggerUnitConfiguration;
-	
+	public SwaggerAuthentication(RestTemplate swaggerUnitHttpClient, SwaggerUnitConfiguration swaggerUnitConfiguration) {
+		this.swaggerUnitHttpClient = swaggerUnitHttpClient;
+		this.swaggerUnitConfiguration = swaggerUnitConfiguration;
+	}
+
 	Optional<AuthorizationValue> getAuth() {
 		return loginAndGetToken().map(this::tokenToAuthorizationValue);
 	}

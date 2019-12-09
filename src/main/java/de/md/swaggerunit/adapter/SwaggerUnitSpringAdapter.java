@@ -22,7 +22,7 @@ public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor, S
 
 	private SwaggerUnitCore unitCore;
 
-	private ValidationScope validationScope = ValidationScope.NONE;
+	private ValidationScope validationScope = ValidationScope.BOTH;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitSpringAdapter.class);
 

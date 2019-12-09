@@ -1,23 +1,5 @@
 package de.md.swaggerunit.core;
 
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import com.atlassian.oai.validator.SwaggerRequestResponseValidator;
 import com.atlassian.oai.validator.SwaggerRequestResponseValidator.Builder;
 import com.atlassian.oai.validator.model.Request.Method;
@@ -27,13 +9,22 @@ import com.atlassian.oai.validator.report.ValidationReport;
 import com.atlassian.oai.validator.report.ValidationReport.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.swagger.models.Operation;
 import io.swagger.models.Path;
 import io.swagger.models.Swagger;
 import io.swagger.models.auth.AuthorizationValue;
 import io.swagger.parser.SwaggerParser;
 import io.swagger.parser.util.SwaggerDeserializationResult;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.util.*;
+import java.util.stream.Collectors;
+import javax.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 @Component
 public class SwaggerUnitCore {
@@ -41,11 +32,11 @@ public class SwaggerUnitCore {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitCore.class);
 
 	private SwaggerAuthentication authentication;
-	
+
 	private SwaggerUnitConfiguration swaggerUnitConfiguration;
-	
+
 	private SwaggerPathResolver swaggerPathResolver;
-	
+
 	private SwaggerRequestResponseValidator validator;
 
 	private Swagger swagger;
@@ -53,10 +44,10 @@ public class SwaggerUnitCore {
 	/**
 	 * Ruft {@link #SwaggerUnitCore(String, SwaggerPathResolver)} und initialisiert eine neue Instanz von
 	 * {@link #swaggerPathResolver}.
-	 * 
+	 *
 	 * @param swaggerDefinition eine Plaintext-Swagger-Definition.
 	 * @deprecated lieber mit {@link #SwaggerUnitCore(SwaggerUnitConfiguration, SwaggerAuthentication, SwaggerPathResolver)}
-	 *             arbeiten und swaggerSourceOverride definieren
+	 * arbeiten und swaggerSourceOverride definieren
 	 */
 	@Deprecated
 	public SwaggerUnitCore(String swaggerDefinition) {
@@ -65,15 +56,22 @@ public class SwaggerUnitCore {
 
 	/**
 	 * Initialisiert SwaggerUnitCore und verwendet swaggerDefinition als das für die Validierung maßgebliche Swagger.
-	 * 
+	 *
 	 * @param swaggerDefinition eine Plaintext-Swagger-Definition.
 	 * @deprecated lieber mit {@link #SwaggerUnitCore(SwaggerUnitConfiguration, SwaggerAuthentication, SwaggerPathResolver)}
-	 *             arbeiten und swaggerSourceOverride definieren
+	 * arbeiten und swaggerSourceOverride definieren
 	 */
 	@Deprecated
 	public SwaggerUnitCore(String swaggerDefinition, SwaggerPathResolver swaggerPathResolver) {
 		this.swaggerPathResolver = swaggerPathResolver;
 		init(swaggerDefinition, Optional.empty());
+	}
+
+	public SwaggerUnitCore(SwaggerUnitConfiguration swaggerUnitConfiguration) {
+		this.swaggerUnitConfiguration = swaggerUnitConfiguration;
+		this.authentication = new SwaggerAuthentication(new RestTemplate(), swaggerUnitConfiguration);
+		this.swaggerPathResolver = new SwaggerPathResolver();
+		init();
 	}
 
 	@Inject
@@ -88,7 +86,7 @@ public class SwaggerUnitCore {
 	private void init() {
 		init(swaggerUnitConfiguration.getSwaggerSourceOverride(), authentication.getAuth());
 	}
-	
+
 	private void init(String swaggerUriOrFileContents, Optional<AuthorizationValue> auth) {
 		initValidator(swaggerUriOrFileContents, auth);
 		initSwagger(swaggerUriOrFileContents, auth);
@@ -134,7 +132,7 @@ public class SwaggerUnitCore {
 	 * @param uri
 	 * @param header
 	 * @param body
-	 * @throws JsonProcessingException 
+	 * @throws JsonProcessingException
 	 */
 	public void validateRequest(String method, URI uri, Map<String, List<String>> header, String body)  {
 		Method requestMethod = Method.valueOf(method);
@@ -169,18 +167,17 @@ public class SwaggerUnitCore {
     	ValidationReport validationReport = validator.validateRequest(simpleRequest);
 
 		Path path = swaggerPathResolver.resolve(swagger, uri);
+		if(path != null) {
+			Collection<Message> validationHeaderMessages = getOperationForMethodFromPath(path, requestMethod).getParameters()
+					.stream().filter(param -> "header".equalsIgnoreCase(param.getIn()) && param.getRequired() && (header == null
+							|| !header.containsKey(param.getName()))).map(param -> new HeaderMessage(param.getName(),
+							String.format("Mandatory header \"%s\" is not set.", param.getName())))
+					.collect(Collectors.toList());
+			ValidationReport validationHeaderReport = ValidationReport.from(validationHeaderMessages);
 
-		Collection<Message> validationHeaderMessages = getOperationForMethodFromPath(path, requestMethod).getParameters()
-				.stream()
-				.filter(param -> "header".equalsIgnoreCase(param.getIn()) && param.getRequired()
-						&& (header == null || !header.containsKey(param.getName())))
-				.map(param -> new HeaderMessage(param.getName(),
-						String.format("Mandatory header \"%s\" is not set.", param.getName())))
-				.collect(Collectors.toList());
-		ValidationReport validationHeaderReport = ValidationReport.from(validationHeaderMessages);
-		
-		ValidationReport mergedValidationReport =  validationReport.merge(validationHeaderReport);
-		processValidationReport(mergedValidationReport);
+			ValidationReport mergedValidationReport = validationReport.merge(validationHeaderReport);
+			processValidationReport(mergedValidationReport);
+		}
 	}
 
 	private void processValidationReport(ValidationReport validationReport) {
@@ -228,8 +225,11 @@ public class SwaggerUnitCore {
 			});
 		}
 		String relUri = uri.getPath().substring(swagger.getBasePath().length());
-		SimpleResponse response = responseBuilder.build();
-		ValidationReport validationReport = validator.validateResponse(relUri, Method.valueOf(method), response);
-		processValidationReport(validationReport);
+		// Only validate if path exists in swagger
+		if(swagger.getPaths().containsKey(relUri)) {
+			SimpleResponse response = responseBuilder.build();
+			ValidationReport validationReport = validator.validateResponse(relUri, Method.valueOf(method), response);
+			processValidationReport(validationReport);
+		}
 	}
 }
