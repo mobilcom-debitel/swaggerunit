@@ -128,26 +128,27 @@ public class SwaggerUnitCore {
 
 	/**
 	 * Validiert den Request gegen die YAML.
+	 *
 	 * @param method
 	 * @param uri
-	 * @param header
+	 * @param headers
 	 * @param body
 	 * @throws JsonProcessingException
 	 */
-	public void validateRequest(String method, URI uri, Map<String, List<String>> header, String body)  {
+	public void validateRequest(String method, URI uri, Map<String, List<String>> headers, String body) {
 		Method requestMethod = Method.valueOf(method);
-		String relUri = uri.getPath().substring(swagger.getBasePath().length(), uri.getPath().length());
+		String relUri = uri.getPath().substring(swagger.getBasePath().length());
 		SimpleRequest.Builder requestBuilder = new SimpleRequest.Builder(requestMethod, relUri).withBody(body);
-		if (header != null) {
-			header.forEach(requestBuilder::withHeader);
+		if (headers != null) {
+			headers.forEach(requestBuilder::withHeader);
 		}
 		String rawQuery = uri.getQuery();
 		Map<String, List<String>> parsedQueryParams = new HashMap<>();
-		if(rawQuery != null && !rawQuery.isEmpty()) {
+		if (rawQuery != null && !rawQuery.isEmpty()) {
 			String[] queryParams = rawQuery.split("&");
-			for(String queryParam : queryParams) {
+			for (String queryParam : queryParams) {
 				String[] split = queryParam.split("=");
-				if(split.length == 2) {
+				if (split.length == 2) {
 					String key = split[0];
 					String value = split[1];
 					if(parsedQueryParams.containsKey(key)) {
@@ -167,16 +168,19 @@ public class SwaggerUnitCore {
     	ValidationReport validationReport = validator.validateRequest(simpleRequest);
 
 		Path path = swaggerPathResolver.resolve(swagger, uri);
-		if(path != null) {
+		if (path != null) {
 			Collection<Message> validationHeaderMessages = getOperationForMethodFromPath(path, requestMethod).getParameters()
-					.stream().filter(param -> "header".equalsIgnoreCase(param.getIn()) && param.getRequired() && (header == null
-							|| !header.containsKey(param.getName()))).map(param -> new HeaderMessage(param.getName(),
+					.stream()
+					.filter(param -> "header".equalsIgnoreCase(param.getIn()) && param.getRequired() && (headers == null
+							|| !headers.containsKey(param.getName()))).map(param -> new HeaderMessage(param.getName(),
 							String.format("Mandatory header \"%s\" is not set.", param.getName())))
 					.collect(Collectors.toList());
 			ValidationReport validationHeaderReport = ValidationReport.from(validationHeaderMessages);
 
 			ValidationReport mergedValidationReport = validationReport.merge(validationHeaderReport);
 			processValidationReport(mergedValidationReport);
+		} else {
+			LOGGER.info("Request für URI: {} wurde nicht validiert.", uri);
 		}
 	}
 
@@ -226,10 +230,12 @@ public class SwaggerUnitCore {
 		}
 		String relUri = uri.getPath().substring(swagger.getBasePath().length());
 		// Only validate if path exists in swagger
-		if(swagger.getPaths().containsKey(relUri)) {
+		if (swagger.getPaths().containsKey(relUri)) {
 			SimpleResponse response = responseBuilder.build();
 			ValidationReport validationReport = validator.validateResponse(relUri, Method.valueOf(method), response);
 			processValidationReport(validationReport);
+		} else {
+			LOGGER.info("Response für URI: {} wurde nicht validiert.", uri);
 		}
 	}
 }

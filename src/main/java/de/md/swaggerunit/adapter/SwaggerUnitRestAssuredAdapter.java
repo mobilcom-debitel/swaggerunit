@@ -11,6 +11,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.AbstractHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.protocol.ExecutionContext;
+import org.apache.http.protocol.HTTP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,7 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 	private AbstractHttpClient httpClient;
 	private HttpRequest request;
 
-	private ValidationScope validationScope = ValidationScope.BOTH;
+	private ValidationScope validationScope = ValidationScope.NONE;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(de.md.swaggerunit.adapter.SwaggerUnitSpringAdapter.class);
 
@@ -52,21 +53,22 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 
 			if (ValidationScope.NONE.equals(validationScope)) {
 				LOGGER.warn("Swagger validation is disabled");
-			}
-			byte[] body = new byte[0];
-			if (request instanceof HttpEntityEnclosingRequest) { // TODO check this body consumed?
-				HttpEntity reqEntity = ((HttpEntityEnclosingRequest) request).getEntity();
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				reqEntity.writeTo(baos);
-				body = baos.toByteArray();
-			}
-			Map<String, List<String>> headers = new HashMap<>();
-			for (Header header : request.getAllHeaders()) {
-				headers.put(header.getName(), Collections.singletonList(header.getValue()));
-			}
+			} else {
+				byte[] body = new byte[0];
+				if (request instanceof HttpEntityEnclosingRequest) {
+					HttpEntity reqEntity = ((HttpEntityEnclosingRequest) request).getEntity();
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					reqEntity.writeTo(baos);
+					body = baos.toByteArray();
+				}
+				Map<String, List<String>> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+				for (Header header : request.getAllHeaders()) {
+					headers.put(header.getName(), Collections.singletonList(header.getValue()));
+				}
 
-			if (validationScope == ValidationScope.REQUEST || validationScope == ValidationScope.BOTH) {
-				unitCore.validateRequest(requestMethod, requestUri, headers, new String(body));
+				if (validationScope == ValidationScope.REQUEST || validationScope == ValidationScope.BOTH) {
+					unitCore.validateRequest(requestMethod, requestUri, headers, new String(body));
+				}
 			}
 		};
 		//Creating an HttpRequestInterceptor
@@ -74,6 +76,7 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 			if (isJsonResponse(response) && (validationScope == ValidationScope.RESPONSE
 					|| validationScope == ValidationScope.BOTH)) {
 				HttpHost target = (HttpHost) context.getAttribute(ExecutionContext.HTTP_TARGET_HOST);
+				request.removeHeaders(HTTP.CONTENT_LEN);
 				HttpEntity resEntity = new DefaultHttpClient().execute(target, request).getEntity();
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				resEntity.writeTo(baos);

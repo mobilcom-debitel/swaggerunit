@@ -26,9 +26,6 @@ public class SwaggerPathResolver {
 		if (path == null) {
 			path = findMatchingParameterPath(swagger, pathToSearchFor);
 		}
-		/*if (path == null) {
-			throw new SwaggerValidationException(String.format("unable to find path for \"%s\".", pathToSearchFor));
-		}*/
 		return path;
 	}
 

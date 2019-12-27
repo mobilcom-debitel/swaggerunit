@@ -33,7 +33,7 @@ public class SwaggerUnitRule implements MethodRule {
 				try {
 					base.evaluate();
 				} catch (Throwable e) {
-					LOGGER.error("Beim ausführen eines Tests ist eine Exception aufgetreten: {}", e);
+					LOGGER.error("Beim ausführen eines Tests ist eine Exception aufgetreten.", e);
 					throw e;
 				}
 				if (annotation != null) {

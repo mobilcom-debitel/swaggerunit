@@ -9,5 +9,5 @@ import java.lang.annotation.Target;
 @Target(value = ElementType.METHOD)
 public @interface SwaggerValidation {
 
-	ValidationScope value() default ValidationScope.NONE;
+	ValidationScope value() default ValidationScope.BOTH;
 }
