@@ -2,6 +2,9 @@ package de.md.swaggerunit.core;
 
 import com.atlassian.oai.validator.SwaggerRequestResponseValidator;
 import com.atlassian.oai.validator.SwaggerRequestResponseValidator.Builder;
+import com.atlassian.oai.validator.interaction.ApiOperationResolver;
+import com.atlassian.oai.validator.model.ApiOperationMatch;
+import com.atlassian.oai.validator.model.Request;
 import com.atlassian.oai.validator.model.Request.Method;
 import com.atlassian.oai.validator.model.SimpleRequest;
 import com.atlassian.oai.validator.model.SimpleResponse;
@@ -9,8 +12,6 @@ import com.atlassian.oai.validator.report.ValidationReport;
 import com.atlassian.oai.validator.report.ValidationReport.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.models.Operation;
-import io.swagger.models.Path;
 import io.swagger.models.Swagger;
 import io.swagger.models.auth.AuthorizationValue;
 import io.swagger.parser.SwaggerParser;
@@ -35,51 +36,30 @@ public class SwaggerUnitCore {
 
 	private SwaggerUnitConfiguration swaggerUnitConfiguration;
 
-	private SwaggerPathResolver swaggerPathResolver;
-
 	private SwaggerRequestResponseValidator validator;
 
 	private Swagger swagger;
 
 	/**
-	 * Ruft {@link #SwaggerUnitCore(String, SwaggerPathResolver)} und initialisiert eine neue Instanz von
-	 * {@link #swaggerPathResolver}.
-	 *
-	 * @param swaggerDefinition eine Plaintext-Swagger-Definition.
-	 * @deprecated lieber mit {@link #SwaggerUnitCore(SwaggerUnitConfiguration, SwaggerAuthentication, SwaggerPathResolver)}
-	 * arbeiten und swaggerSourceOverride definieren
-	 */
-	@Deprecated
-	public SwaggerUnitCore(String swaggerDefinition) {
-		this(swaggerDefinition, new SwaggerPathResolver());
-	}
-
-	/**
 	 * Initialisiert SwaggerUnitCore und verwendet swaggerDefinition als das für die Validierung maßgebliche Swagger.
 	 *
 	 * @param swaggerDefinition eine Plaintext-Swagger-Definition.
-	 * @deprecated lieber mit {@link #SwaggerUnitCore(SwaggerUnitConfiguration, SwaggerAuthentication, SwaggerPathResolver)}
-	 * arbeiten und swaggerSourceOverride definieren
 	 */
 	@Deprecated
-	public SwaggerUnitCore(String swaggerDefinition, SwaggerPathResolver swaggerPathResolver) {
-		this.swaggerPathResolver = swaggerPathResolver;
+	public SwaggerUnitCore(String swaggerDefinition) {
 		init(swaggerDefinition, Optional.empty());
 	}
 
 	public SwaggerUnitCore(SwaggerUnitConfiguration swaggerUnitConfiguration) {
 		this.swaggerUnitConfiguration = swaggerUnitConfiguration;
 		this.authentication = new SwaggerAuthentication(new RestTemplate(), swaggerUnitConfiguration);
-		this.swaggerPathResolver = new SwaggerPathResolver();
 		init();
 	}
 
 	@Inject
-	public SwaggerUnitCore(SwaggerUnitConfiguration swaggerUnitConfiguration, SwaggerAuthentication authentication,
-			SwaggerPathResolver swaggerPathResolver) {
+	public SwaggerUnitCore(SwaggerUnitConfiguration swaggerUnitConfiguration, SwaggerAuthentication authentication) {
 		this.swaggerUnitConfiguration = swaggerUnitConfiguration;
 		this.authentication = authentication;
-		this.swaggerPathResolver = swaggerPathResolver;
 		init();
 	}
 
@@ -114,7 +94,8 @@ public class SwaggerUnitCore {
 
 	/**
 	 * Simple function to test, if a string is a valid representation of an URL or not.
-	 * @param content
+	 *
+	 * @param content -
 	 * @return true is the string is a valid URL
 	 */
 	private boolean isUrl(String content){
@@ -129,16 +110,15 @@ public class SwaggerUnitCore {
 	/**
 	 * Validiert den Request gegen die YAML.
 	 *
-	 * @param method
-	 * @param uri
-	 * @param headers
-	 * @param body
-	 * @throws JsonProcessingException
+	 * @param method -
+	 * @param uri -
+	 * @param headers -
+	 * @param body -
+	 * @throws JsonProcessingException -
 	 */
 	public void validateRequest(String method, URI uri, Map<String, List<String>> headers, String body) {
 		Method requestMethod = Method.valueOf(method);
-		String relUri = uri.getPath().substring(swagger.getBasePath().length());
-		SimpleRequest.Builder requestBuilder = new SimpleRequest.Builder(requestMethod, relUri).withBody(body);
+		SimpleRequest.Builder requestBuilder = new SimpleRequest.Builder(requestMethod, uri.getPath()).withBody(body);
 		if (headers != null) {
 			headers.forEach(requestBuilder::withHeader);
 		}
@@ -158,18 +138,16 @@ public class SwaggerUnitCore {
 						values.add(value);
 						parsedQueryParams.put(key, values);
 					}
-				} else {
-					// log warn/info
 				}
 			}
 		}
 		parsedQueryParams.forEach(requestBuilder::withQueryParam);
 		SimpleRequest simpleRequest = requestBuilder.build();
-    	ValidationReport validationReport = validator.validateRequest(simpleRequest);
+		ValidationReport validationReport = validator.validateRequest(simpleRequest);
 
-		Path path = swaggerPathResolver.resolve(swagger, uri);
-		if (path != null) {
-			Collection<Message> validationHeaderMessages = getOperationForMethodFromPath(path, requestMethod).getParameters()
+		ApiOperationMatch apiOperation = getApiOperation(swagger, uri.getPath(), Method.valueOf(method));
+		if (apiOperation.isPathFound() && apiOperation.isOperationAllowed()) {
+			Collection<Message> validationHeaderMessages = apiOperation.getApiOperation().getOperation().getParameters()
 					.stream()
 					.filter(param -> "header".equalsIgnoreCase(param.getIn()) && param.getRequired() && (headers == null
 							|| !headers.containsKey(param.getName()))).map(param -> new HeaderMessage(param.getName(),
@@ -192,47 +170,31 @@ public class SwaggerUnitCore {
 		} catch (JsonProcessingException e) {
 			LOGGER.error("Das Validierungsergebnis von SwaggerUnit konnte nicht ausgegeben werden.", e);
 		}
-		if(validationReport != null && validationReport.hasErrors()){
+		if (validationReport != null && validationReport.hasErrors()) {
 			String message = validationReport.getMessages().stream()
 					//TODO: filter by parameter?
-					.map(Message::getMessage)
-					.collect(Collectors.joining(" "));
-			if(message != null && !message.isEmpty()) {
+					.map(Message::getMessage).collect(Collectors.joining(" "));
+			if (!message.isEmpty()) {
 				throw new SwaggerValidationException(message);
 			}
 		}
 	}
 
-	private Operation getOperationForMethodFromPath(Path path, Method method){
-		switch(method){
-			case DELETE:
-				return path.getDelete();
-			case GET:
-				return path.getGet();
-			case PATCH:
-				return path.getPatch();
-			case POST:
-				return path.getPost();
-			case PUT:
-				return path.getPut();
-			default:
-				//just in case one day TRACE or so will be added to the Method enum ^^.
-				throw new UnsupportedOperationException(String.format("http verb \"%s\" is not supported.", method));
-		}
+	public ApiOperationMatch getApiOperation(Swagger swagger, String path, Request.Method method) {
+		return new ApiOperationResolver(swagger, null).findApiOperation(path, method);
 	}
 
 	public void validateResponse(String method, int statusCode, URI uri, Map<String, List<String>> headers, String body) {
 		SimpleResponse.Builder responseBuilder = new SimpleResponse.Builder(statusCode).withBody(body);
-		if(headers != null){
-			headers.forEach((k, v) -> {
-				responseBuilder.withHeader(k, v.toArray(new String[v.size()]));
-			});
+		if (headers != null) {
+			headers.forEach((k, v) -> responseBuilder.withHeader(k, v.toArray(new String[0])));
 		}
-		String relUri = uri.getPath().substring(swagger.getBasePath().length());
+
+		ApiOperationMatch apiOperation = getApiOperation(swagger, uri.getPath(), Method.valueOf(method));
 		// Only validate if path exists in swagger
-		if (swagger.getPaths().containsKey(relUri)) {
+		if (apiOperation.isPathFound() && apiOperation.isOperationAllowed()) {
 			SimpleResponse response = responseBuilder.build();
-			ValidationReport validationReport = validator.validateResponse(relUri, Method.valueOf(method), response);
+			ValidationReport validationReport = validator.validateResponse(uri.getPath(), Method.valueOf(method), response);
 			processValidationReport(validationReport);
 		} else {
 			LOGGER.info("Response für URI: {} wurde nicht validiert.", uri);

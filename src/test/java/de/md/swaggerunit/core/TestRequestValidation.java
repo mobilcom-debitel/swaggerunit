@@ -1,33 +1,17 @@
 package de.md.swaggerunit.core;
 
-import static org.hamcrest.CoreMatchers.containsString;
-
 import java.net.URI;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.junit.After;
+import java.util.*;
+import mockit.Expectations;
+import mockit.Injectable;
+import mockit.Tested;
+import mockit.integration.junit4.JMockit;
+import static org.hamcrest.CoreMatchers.containsString;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-
-import io.swagger.models.Operation;
-import io.swagger.models.Path;
-import io.swagger.models.Swagger;
-import io.swagger.models.parameters.BodyParameter;
-import io.swagger.models.parameters.Parameter;
-import mockit.Expectations;
-import mockit.Injectable;
-import mockit.Tested;
-import mockit.Verifications;
-import mockit.integration.junit4.JMockit;
 
 @RunWith(JMockit.class)
 public class TestRequestValidation {
@@ -37,13 +21,11 @@ public class TestRequestValidation {
 
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
-	
+
 	@Injectable SwaggerUnitConfiguration swaggerUnitConfiguration;
-	
+
 	@Injectable SwaggerAuthentication swaggerAuthentication;
-	
-	@Injectable	SwaggerPathResolver swaggerPathResolver;
-	
+
 	@Tested(fullyInitialized = true) SwaggerUnitCore swaggerUnitCore;
 
 	@Before
@@ -54,16 +36,6 @@ public class TestRequestValidation {
 				result = SWAGGER_DEFINITION;
 				swaggerAuthentication.getAuth();
 				result = Optional.empty();
-			}
-		};
-	}
-
-	@After
-	public void makeSureMethodsWereCalled() {
-		new Verifications() {
-			{
-				swaggerPathResolver.resolve((Swagger) any, (URI) any);
-				times = 1;
 			}
 		};
 	}
@@ -82,13 +54,12 @@ public class TestRequestValidation {
 	}
 
 	@Test
-	public void oneHeaderMissing_shouldFail() throws JsonProcessingException {
+	public void oneHeaderMissing_shouldFail() {
 		thrown.expect(SwaggerValidationException.class);
 		thrown.expectMessage(containsString(
 				"Header parameter 'Agent' is required on path '/contracts/tariffSwap' but not found in request."));
 		URI toTest = URI.create("/v1/contracts/tariffSwap?contractId=mc.123324");
-		@SuppressWarnings("serial")
-		Map<String, List<String>> headers = new HashMap<String, List<String>>() {
+		@SuppressWarnings("serial") Map<String, List<String>> headers = new HashMap<String, List<String>>() {
 			{
 				put("Channel", Collections.singletonList("App"));
 			}
@@ -97,21 +68,7 @@ public class TestRequestValidation {
 	}
 
 	@Test
-	public void testErrorMessageGetsAdditionalInformationOnMissingHeaders() throws JsonProcessingException {
-		new Expectations() {
-			{
-				Parameter agentHeaderParameter = new BodyParameter();
-				agentHeaderParameter.setName("Agent");
-				agentHeaderParameter.setRequired(true);
-				agentHeaderParameter.setIn("header");
-				Operation operationWithAgentHeader = new Operation();
-				operationWithAgentHeader.addParameter(agentHeaderParameter);
-				Path getPathWithAgentHeader = new Path();
-				getPathWithAgentHeader.setGet(operationWithAgentHeader);
-				swaggerPathResolver.resolve((Swagger) any, (URI) any);
-				result = getPathWithAgentHeader;
-			}
-		};
+	public void testErrorMessageGetsAdditionalInformationOnMissingHeaders() {
 		thrown.expect(SwaggerValidationException.class);
 		thrown.expectMessage(containsString("Mandatory header \"Agent\" is not set."));
 		URI toTest = URI.create("/v1/contracts/tariffSwap?contractId=mc.123324");
@@ -120,10 +77,12 @@ public class TestRequestValidation {
 	}
 
 	@Test
-	public void allHeaderMissing_shouldFail() throws JsonProcessingException {
+	public void allHeaderMissing_shouldFail() {
 		thrown.expect(SwaggerValidationException.class);
-		thrown.expectMessage(containsString("Header parameter 'Agent' is required on path '/contracts/tariffSwap' but not found in request."));
-		thrown.expectMessage(containsString("Header parameter 'Channel' is required on path '/contracts/tariffSwap' but not found in request."));
+		thrown.expectMessage(containsString(
+				"Header parameter 'Agent' is required on path '/contracts/tariffSwap' but not found in request."));
+		thrown.expectMessage(containsString(
+				"Header parameter 'Channel' is required on path '/contracts/tariffSwap' but not found in request."));
 		URI toTest = URI.create("/v1/contracts/tariffSwap?contractId=mc.123324");
 		Map<String, List<String>> headers = new HashMap<>();
 		swaggerUnitCore.validateRequest("GET", toTest, headers, null);
@@ -158,15 +117,14 @@ public class TestRequestValidation {
 
 		swaggerUnitCore.validateRequest("GET", toTest, headers, null);
 	}
-	
+
 	@Test
-	public void testValidation_withPathParams()  {
-		SwaggerUnitCore swaggerUnitCore = new SwaggerUnitCore(SWAGGER_DEFINITION2, swaggerPathResolver);
-		
+	public void testValidation_withPathParams() {
+		SwaggerUnitCore swaggerUnitCore = new SwaggerUnitCore(SWAGGER_DEFINITION2);
+
 		URI toTest = URI.create("/v1/contracts/reactivation/MC.12345/check");
 
-		@SuppressWarnings("serial")
-		Map<String, List<String>> headers = new HashMap<String, List<String>>() {{
+		@SuppressWarnings("serial") Map<String, List<String>> headers = new HashMap<String, List<String>>() {{
 			put("Channel", Collections.singletonList("App"));
 			put("Agent", Collections.singletonList("Fox Mulder"));
 			put("userInfo", Collections.singletonList("anyUserInfo"));

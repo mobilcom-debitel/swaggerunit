@@ -1,39 +1,88 @@
 package de.md.swaggerunit.core;
 
+import com.atlassian.oai.validator.SwaggerRequestResponseValidator;
+import com.atlassian.oai.validator.model.Request;
+import com.atlassian.oai.validator.model.SimpleResponse;
+import com.atlassian.oai.validator.report.ValidationReport;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Optional;
+import mockit.*;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 /**
  * Created by fpriede on 26.04.2017.
  */
 public class TestResponseValidation {
 
-	private SwaggerUnitCore core = new SwaggerUnitCore(TestRequestValidation.SWAGGER_DEFINITION);
+	@Rule
+	public ExpectedException thrown = ExpectedException.none();
 
+	@Injectable
+	SwaggerUnitConfiguration swaggerUnitConfiguration;
+
+	@Injectable
+	SwaggerAuthentication swaggerAuthentication;
+
+	@Tested(fullyInitialized = true)
+	SwaggerUnitCore swaggerUnitCore;
+
+	@Before
+	public void satisfyConstructionRequirements() {
+		new Expectations() {
+			{
+				swaggerUnitConfiguration.getSwaggerSourceOverride();
+				result = TestRequestValidation.SWAGGER_DEFINITION2;
+				swaggerAuthentication.getAuth();
+				result = Optional.empty();
+			}
+		};
+	}
+
+	/**
+	 * Path was not found, so no validation took place.
+	 */
+	@Test
+	public void testURINotInSwagger() {
+		Map<String, List<String>> headers = new HashMap<>();
+
+		swaggerUnitCore.validateResponse("GET", 200, URI.create("/different/uri"), headers, null);
+	}
+
+	/**
+	 * Validation failed since empty Response body is not allowed.
+	 */
 	@Test(expected = SwaggerValidationException.class)
-	public void test() throws URISyntaxException {
-			String responseBody = "{\n" +
-					"  \"tariffs\": [\n" +
-					"		{\n" +
-					"			\"idd\": \"213124\",\n" +
-					"			\"label\": \"RED 4 GB mit Handy 10\",\n" +
-					"			\"priceRecurrent\": \"39.99\",\n" +
-					"			\"fee\": \"19.99\",\n" +
-					"			\"date\": \"2017-04-26T08:33:22.782Z\",\n" +
-					"			\"netCode\": \"D1\",\n" +
-					"			\"mustProlongate\": true\n" +
-					"		}\n" +
-					"	]\n" +
-					"}";
+	public void testMissingResponseBody() {
+		String responseBody = "{}";
 
 		Map<String, List<String>> headers = new HashMap<>();
 
-		core.validateResponse("GET", 200, URI.create("/contracts/tariffSwap"), headers, responseBody);
+		swaggerUnitCore.validateResponse("GET", 200, URI.create("/v1/contracts/reactivation/MC.12345/check"), headers, responseBody);
+	}
+
+	@Test
+	public void testValid() {
+		String responseBody = "{\"valid\": true}";
+
+		Map<String, List<String>> headers = new HashMap<>();
+
+		swaggerUnitCore.validateResponse("GET", 200, URI.create("/v1/contracts/reactivation/MC.12345/check"), headers, responseBody);
+	}
+
+	/**
+	 * Path found but apiOperation not allowed, so no validation took place.
+	 */
+	@Test
+	public void testMethodNotInSwagger() {
+		Map<String, List<String>> headers = new HashMap<>();
+
+		swaggerUnitCore.validateResponse("PUT", 200, URI.create("/v1/contracts/reactivation/MC.12345/check"), headers, null);
 	}
 
 }

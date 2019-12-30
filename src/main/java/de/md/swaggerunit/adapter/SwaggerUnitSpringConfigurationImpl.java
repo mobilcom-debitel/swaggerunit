@@ -7,7 +7,6 @@
 package de.md.swaggerunit.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.md.swaggerunit.core.SwaggerPathResolver;
 import de.md.swaggerunit.core.SwaggerUnitConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -71,11 +70,6 @@ public class SwaggerUnitSpringConfigurationImpl implements SwaggerUnitConfigurat
 			}
 		});
 		return swaggerUnitHttpClient;
-	}
-
-	@Bean
-	public SwaggerPathResolver swaggerPathResolver() {
-		return new SwaggerPathResolver();
 	}
 
 }
