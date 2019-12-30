@@ -6,17 +6,15 @@
 // #***************************************************************************
 package de.md.swaggerunit.core;
 
-import java.util.Optional;
-
-import javax.inject.Inject;
-
+import io.swagger.models.auth.AuthorizationValue;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import io.swagger.models.auth.AuthorizationValue;
+import javax.inject.Inject;
+import java.util.Optional;
 
 @Component
 public class SwaggerAuthentication {
@@ -68,6 +66,7 @@ public class SwaggerAuthentication {
 	}
 
 	private MultiValueMap<String, String> createLoginForm() {
+		System.out.println("pass: " + swaggerUnitConfiguration.getSwaggerLoginPassword());
 		MultiValueMap<String, String> loginForm = new LinkedMultiValueMap<>();
 		loginForm.add(LOGIN_FORM_FIELD_USERNAME, swaggerUnitConfiguration.getSwaggerLoginUsername());
 		loginForm.add(LOGIN_FORM_FIELD_PASSWORD, swaggerUnitConfiguration.getSwaggerLoginPassword());
