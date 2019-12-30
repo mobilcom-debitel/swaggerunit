@@ -66,7 +66,6 @@ public class SwaggerAuthentication {
 	}
 
 	private MultiValueMap<String, String> createLoginForm() {
-		System.out.println("pass: " + swaggerUnitConfiguration.getSwaggerLoginPassword());
 		MultiValueMap<String, String> loginForm = new LinkedMultiValueMap<>();
 		loginForm.add(LOGIN_FORM_FIELD_USERNAME, swaggerUnitConfiguration.getSwaggerLoginUsername());
 		loginForm.add(LOGIN_FORM_FIELD_PASSWORD, swaggerUnitConfiguration.getSwaggerLoginPassword());
