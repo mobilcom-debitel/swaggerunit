@@ -43,8 +43,7 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 
 	@Override
 	public HttpClient createHttpClient() {
-		if (ValidationScope.NONE.equals(validationScope) || SKIP_VALIDATION_VALUE
-				.equalsIgnoreCase(System.getProperty(SKIP_VALIDATION_KEY))) {
+		if (SKIP_VALIDATION_VALUE.equalsIgnoreCase(System.getProperty(SKIP_VALIDATION_KEY))) {
 			LOGGER.warn("Swagger validation is disabled");
 		} else {
 			httpClient.addRequestInterceptor((request, context) -> validateRequestInterceptor(request));
@@ -61,7 +60,9 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 	 * @return true if the response body is formatted as json.
 	 */
 	private boolean isJsonResponse(HttpResponse response) {
-		return response.getFirstHeader("content-type").getValue().contains("application/json");
+		return response.getFirstHeader("content-type") != null && response.getFirstHeader("content-type")
+				.getValue()
+				.contains("application/json");
 	}
 
 	/**
@@ -71,6 +72,10 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 	 * @throws IOException -
 	 */
 	private void validateRequestInterceptor(HttpRequest request) throws IOException {
+		if (ValidationScope.NONE.equals(validationScope)) {
+			LOGGER.warn("Swagger validation is disabled");
+		}
+
 		this.request = request;
 		requestMethod = request.getRequestLine().getMethod();
 		requestUri = URI.create(request.getRequestLine().getUri());

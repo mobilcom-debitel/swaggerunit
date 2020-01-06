@@ -57,8 +57,6 @@ public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor, S
 		if (isJsonResponse(response) && (validationScope == ValidationScope.RESPONSE
 				|| validationScope == ValidationScope.BOTH)) {
 			ClonedHttpResponse clonedHttpResponse = ClonedHttpResponse.createFrom(response);
-			//TODO: only do this if the content type is json!
-			//TODO: dont use the default charset to create the body as string.
 			unitCore.validateResponse(request.getMethod().name(), response.getRawStatusCode(), request.getURI(),
 					request.getHeaders(), new String(clonedHttpResponse.getRawBody()));
 			return clonedHttpResponse;
