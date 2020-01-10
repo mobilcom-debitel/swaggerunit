@@ -115,9 +115,12 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 			request.removeHeaders(HTTP.CONTENT_LEN);
 			HttpEntity resEntity = new DefaultHttpClient().execute(target, request)
 					.getEntity();
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			resEntity.writeTo(baos);
-			byte[] body = baos.toByteArray();
+			byte[] body = new byte[0];
+			if(resEntity != null) {
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				resEntity.writeTo(baos);
+				body = baos.toByteArray();
+			}
 
 			Map<String, List<String>> headers = new HashMap<>();
 			for (Header header : response.getAllHeaders()) {
