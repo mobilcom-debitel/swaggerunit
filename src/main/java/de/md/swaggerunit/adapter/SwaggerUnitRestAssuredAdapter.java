@@ -74,26 +74,30 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 	private void validateRequestInterceptor(HttpRequest request) throws IOException {
 		if (ValidationScope.NONE.equals(validationScope)) {
 			LOGGER.warn("Swagger validation is disabled");
-		}
+		} else {
+			this.request = request;
+			requestMethod = request.getRequestLine()
+					.getMethod();
+			requestUri = URI.create(request.getRequestLine()
+					.getUri());
 
-		this.request = request;
-		requestMethod = request.getRequestLine().getMethod();
-		requestUri = URI.create(request.getRequestLine().getUri());
+			byte[] body = new byte[0];
+			if (request instanceof HttpEntityEnclosingRequest) {
+				HttpEntity reqEntity = ((HttpEntityEnclosingRequest) request).getEntity();
+				if (reqEntity != null) {
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					reqEntity.writeTo(baos);
+					body = baos.toByteArray();
+				}
+			}
+			Map<String, List<String>> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+			for (Header header : request.getAllHeaders()) {
+				headers.put(header.getName(), Collections.singletonList(header.getValue()));
+			}
 
-		byte[] body = new byte[0];
-		if (request instanceof HttpEntityEnclosingRequest) {
-			HttpEntity reqEntity = ((HttpEntityEnclosingRequest) request).getEntity();
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			reqEntity.writeTo(baos);
-			body = baos.toByteArray();
-		}
-		Map<String, List<String>> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-		for (Header header : request.getAllHeaders()) {
-			headers.put(header.getName(), Collections.singletonList(header.getValue()));
-		}
-
-		if (validationScope == ValidationScope.REQUEST || validationScope == ValidationScope.BOTH) {
-			unitCore.validateRequest(requestMethod, requestUri, headers, new String(body));
+			if (validationScope == ValidationScope.REQUEST || validationScope == ValidationScope.BOTH) {
+				unitCore.validateRequest(requestMethod, requestUri, headers, new String(body));
+			}
 		}
 	}
 
@@ -109,7 +113,8 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 				|| validationScope == ValidationScope.BOTH)) {
 			HttpHost target = (HttpHost) context.getAttribute(ExecutionContext.HTTP_TARGET_HOST);
 			request.removeHeaders(HTTP.CONTENT_LEN);
-			HttpEntity resEntity = new DefaultHttpClient().execute(target, request).getEntity();
+			HttpEntity resEntity = new DefaultHttpClient().execute(target, request)
+					.getEntity();
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			resEntity.writeTo(baos);
 			byte[] body = baos.toByteArray();
@@ -119,8 +124,8 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 				headers.put(header.getName(), Collections.singletonList(header.getValue()));
 			}
 
-			unitCore.validateResponse(requestMethod, response.getStatusLine().getStatusCode(), requestUri, headers,
-					new String(body));
+			unitCore.validateResponse(requestMethod, response.getStatusLine()
+					.getStatusCode(), requestUri, headers, new String(body));
 		}
 	}
 
