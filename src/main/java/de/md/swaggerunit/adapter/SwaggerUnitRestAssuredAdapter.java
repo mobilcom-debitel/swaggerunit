@@ -1,6 +1,8 @@
 package de.md.swaggerunit.adapter;
 
 import de.md.swaggerunit.core.SwaggerUnitCore;
+import static de.md.swaggerunit.core.SwaggerUnitCore.SKIP_VALIDATION_KEY;
+import static de.md.swaggerunit.core.SwaggerUnitCore.SKIP_VALIDATION_VALUE;
 import de.md.swaggerunit.usage.ValidationScope;
 import io.restassured.config.HttpClientConfig;
 import java.io.IOException;
@@ -31,8 +33,6 @@ public class SwaggerUnitRestAssuredAdapter implements HttpClientConfig.HttpClien
 	private HttpRequest request;
 
 	private ValidationScope validationScope = ValidationScope.NONE;
-	private static final String SKIP_VALIDATION_VALUE = "true";
-	private static final String SKIP_VALIDATION_KEY = "swaggerunit.validation.skip";
 	private static final Logger LOGGER = LoggerFactory.getLogger(de.md.swaggerunit.adapter.SwaggerUnitSpringAdapter.class);
 
 	public SwaggerUnitRestAssuredAdapter(SwaggerUnitCore unitCore, AbstractHttpClient httpClient) {

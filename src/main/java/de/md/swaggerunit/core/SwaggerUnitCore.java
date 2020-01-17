@@ -25,10 +25,16 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
 public class SwaggerUnitCore {
+
+	public static final String SKIP_VALIDATION_VALUE = "true";
+	public static final String SKIP_VALIDATION_KEY = "swaggerunit.validation.skip";
+	private static final String STRICT_VALIDATION_KEY = "swaggerunit.validation.strict";
+	private static final String STRICT_VALIDATION_VALUE = "true";
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitCore.class);
 
@@ -63,8 +69,24 @@ public class SwaggerUnitCore {
 		init();
 	}
 
+	/**
+	 * Ignoriere SwaggerUnit bei Exceptions es sei den dies wurde per VM Parameter überschrieben.
+	 */
 	private void init() {
-		init(swaggerUnitConfiguration.getSwaggerSourceOverride(), authentication.getAuth());
+		try {
+			init(swaggerUnitConfiguration.getSwaggerSourceOverride(), authentication.getAuth());
+		} catch (Exception ex) {
+			if (ex instanceof RestClientException) {
+				LOGGER.error("Die URL <{}> hat mit einem Fehler geantwortet.", swaggerUnitConfiguration.getSwaggerLoginUrl());
+			} else {
+				LOGGER.error("Die Swagger <{}> konnte nicht initializiert werden.",
+						swaggerUnitConfiguration.getSwaggerSourceOverride());
+			}
+			if (STRICT_VALIDATION_VALUE.equalsIgnoreCase(System.getProperty(STRICT_VALIDATION_KEY))) {
+				throw ex;
+			}
+			System.setProperty(SKIP_VALIDATION_KEY, SKIP_VALIDATION_VALUE);
+		}
 	}
 
 	private void init(String swaggerUriOrFileContents, Optional<AuthorizationValue> auth) {
@@ -114,7 +136,6 @@ public class SwaggerUnitCore {
 	 * @param uri -
 	 * @param headers -
 	 * @param body -
-	 * @throws JsonProcessingException -
 	 */
 	public void validateRequest(String method, URI uri, Map<String, List<String>> headers, String body) {
 		Method requestMethod = Method.valueOf(method);

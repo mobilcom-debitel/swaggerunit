@@ -1,6 +1,8 @@
 package de.md.swaggerunit.adapter;
 
 import de.md.swaggerunit.core.SwaggerUnitCore;
+import static de.md.swaggerunit.core.SwaggerUnitCore.SKIP_VALIDATION_KEY;
+import static de.md.swaggerunit.core.SwaggerUnitCore.SKIP_VALIDATION_VALUE;
 import de.md.swaggerunit.usage.ValidationScope;
 import java.io.IOException;
 import java.util.Arrays;
@@ -21,8 +23,6 @@ public class SwaggerUnitSpringAdapter implements ClientHttpRequestInterceptor, S
 
 	private ValidationScope validationScope = ValidationScope.NONE;
 
-	private static final String SKIP_VALIDATION_VALUE = "true";
-	private static final String SKIP_VALIDATION_KEY = "swaggerunit.validation.skip";
 	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerUnitSpringAdapter.class);
 
 	public SwaggerUnitSpringAdapter(SwaggerUnitCore unitCore, RestTemplate swaggerUnitHttpClient) {
