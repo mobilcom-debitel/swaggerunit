@@ -4,7 +4,7 @@
     <artifactId>swaggerunit</artifactId>
     <version>3.1.7-SNAPSHOT</version>
     <name>SwaggerUnit</name>
-    <description>Framework um eine SwaggerValidierung im JUnit-Test durchzuführen</description>
+    <description>Framework to do SwaggerValidation via JUnit-Tests</description>
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -13,23 +13,8 @@
         <java.version>1.8</java.version>
     </properties>
     <scm>
-        <developerConnection>scm:git:https://stashweb.mobilcom.de/scm/kuse/swaggerunit.git</developerConnection>
-        <connection>scm:git:https://stashweb.mobilcom.de/scm/kuse/swaggerunit.git</connection>
-        <url>https://stashweb.mobilcom.de/scm/kuse/swaggerunit.git</url>
-        <tag>HEAD</tag>
+        <url>https://github.com/mobilcom-debitel/swaggerunit</url>
     </scm>
-    <distributionManagement>
-        <repository>
-            <id>md-release</id>
-            <name>artifactory-releases</name>
-            <url>http://artifactory:8080/artifactory/md-release</url>
-        </repository>
-        <snapshotRepository>
-            <id>md-snapshot</id>
-            <name>artifactory-snapshots</name>
-            <url>http://artifactory:8080/artifactory/md-snapshot</url>
-        </snapshotRepository>
-    </distributionManagement>
     <dependencies>
         <dependency>
             <groupId>org.jmockit</groupId>
